@@ -24,4 +24,5 @@ dependencies {
 tasks.shadowJar {
     dependsOn(tasks.jar)
 
+    relocate("org.codemc.worldguardwrapper", "com.extendedclip.libs.worldguardwrapper")
 }
