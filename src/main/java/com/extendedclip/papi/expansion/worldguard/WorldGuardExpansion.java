@@ -20,6 +20,10 @@
  */
 package com.extendedclip.papi.expansion.worldguard;
 
+import com.sk89q.worldedit.world.World;
+import com.sk89q.worldguard.WorldGuard;
+import com.sk89q.worldguard.internal.platform.WorldGuardPlatform;
+import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import me.clip.placeholderapi.PlaceholderAPIPlugin;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.apache.commons.lang.StringUtils;
@@ -30,17 +34,29 @@ import org.bukkit.entity.Player;
 import org.codemc.worldguardwrapper.WorldGuardWrapper;
 import org.codemc.worldguardwrapper.region.IWrappedRegion;
 import org.codemc.worldguardwrapper.selection.ICuboidSelection;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+
 import static java.util.stream.Collectors.toMap;
 
 public class WorldGuardExpansion extends PlaceholderExpansion {
 
     private final String NAME = "WorldGuard";
     private final String IDENTIFIER = NAME.toLowerCase();
-    private final String VERSION = getClass().getPackage().getImplementationVersion();
+    private final String VERSION = "1.5.0";
 
     private WorldGuardWrapper worldguard;
+
+    WorldGuardPlatform wgi = WorldGuard.getInstance().getPlatform();
 
     /**
      * This expansion requires WorldGuard to work, so we have to check for it here.
@@ -55,7 +71,7 @@ public class WorldGuardExpansion extends PlaceholderExpansion {
     }
 
     @Override
-    public String getName() {
+    public @NotNull String getName() {
         return NAME;
     }
 
@@ -65,8 +81,8 @@ public class WorldGuardExpansion extends PlaceholderExpansion {
      * @return The name of the author as a String.
      */
     @Override
-    public String getAuthor() {
-        return "clip";
+    public @NotNull String getAuthor() {
+        return "DrZoddiak";
     }
 
     /**
@@ -75,7 +91,7 @@ public class WorldGuardExpansion extends PlaceholderExpansion {
      * @return The version as a String.
      */
     @Override
-    public String getVersion() {
+    public @NotNull String getVersion() {
         return VERSION;
     }
 
@@ -85,7 +101,7 @@ public class WorldGuardExpansion extends PlaceholderExpansion {
      * @return "worldguard".
      */
     @Override
-    public String getIdentifier() {
+    public @NotNull String getIdentifier() {
         return IDENTIFIER;
     }
 
@@ -198,11 +214,23 @@ public class WorldGuardExpansion extends PlaceholderExpansion {
         return null;
     }
 
+
+    private ProtectedRegion getRegionByName(World world, String region) {
+        try {
+            return Objects.requireNonNull(wgi.getRegionContainer().get(world)).getRegion(region);
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private World getWorldByName(String string) {
+        return wgi.getMatcher().getWorldByName(string);
+    }
+
     /**
      * Get a wrapped region from a location.
      *
      * @param location The location to check
-     *
      * @return The wrapped region
      */
     private IWrappedRegion getRegion(Location location, int priority) {
@@ -211,7 +239,7 @@ public class WorldGuardExpansion extends PlaceholderExpansion {
         }
         try {
             Map<String, Integer> regions = worldguard.getRegions(location).stream().sorted(
-                    Comparator.comparingInt(IWrappedRegion::getPriority).reversed())
+                            Comparator.comparingInt(IWrappedRegion::getPriority).reversed())
                     .collect(toMap(IWrappedRegion::getId, IWrappedRegion::getPriority, (v1, v2) -> v2, LinkedHashMap::new));
 
             Optional<IWrappedRegion> region = worldguard.getRegion(location.getWorld(), regions.keySet().toArray(new String[0])[priority - 1]);
@@ -232,13 +260,20 @@ public class WorldGuardExpansion extends PlaceholderExpansion {
             return null;
         }
         String[] s = loc.split(",");
+
         try {
-            return new Location(
-                    Bukkit.getWorld(s[0]),
-                    Double.parseDouble(s[1]),
-                    Double.parseDouble(s[2]),
-                    Double.parseDouble(s[3])
-            );
+            if (s.length == 2) {
+                var vec = Objects.requireNonNull(getRegionByName(getWorldByName(s[0]), s[1])).getMaximumPoint();
+
+                return new Location(Bukkit.getWorld(s[0]), vec.x(), vec.y(), vec.z());
+            } else {
+                return new Location(
+                        Bukkit.getWorld(s[0]),
+                        Double.parseDouble(s[1]),
+                        Double.parseDouble(s[2]),
+                        Double.parseDouble(s[3])
+                );
+            }
         } catch (Exception ex) {
             return null;
         }
@@ -252,11 +287,11 @@ public class WorldGuardExpansion extends PlaceholderExpansion {
      */
     private String toGroupString(Set<String> groups) {
         StringBuilder sb = new StringBuilder();
-        Iterator it = groups.iterator();
+        Iterator<String> it = groups.iterator();
 
         while (it.hasNext()) {
             sb.append("*");
-            sb.append((String) it.next());
+            sb.append(it.next());
             if (it.hasNext()) {
                 sb.append(", ");
             }
