@@ -82,7 +82,7 @@ public class WorldGuardExpansion extends PlaceholderExpansion {
      */
     @Override
     public @NotNull String getAuthor() {
-        return "DrZoddiak";
+        return "clip";
     }
 
     /**
