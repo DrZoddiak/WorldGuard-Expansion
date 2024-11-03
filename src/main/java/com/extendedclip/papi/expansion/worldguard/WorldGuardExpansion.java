@@ -20,7 +20,6 @@
  */
 package com.extendedclip.papi.expansion.worldguard;
 
-import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.world.World;
 import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.internal.platform.WorldGuardPlatform;
@@ -34,7 +33,6 @@ import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.codemc.worldguardwrapper.WorldGuardWrapper;
-import org.codemc.worldguardwrapper.implementation.v6.region.WrappedRegion;
 import org.codemc.worldguardwrapper.region.IWrappedRegion;
 import org.codemc.worldguardwrapper.selection.ICuboidSelection;
 import org.codemc.worldguardwrapper.selection.IPolygonalSelection;
@@ -201,17 +199,16 @@ public class WorldGuardExpansion extends PlaceholderExpansion {
             }
 
             if (selection instanceof IPolygonalSelection polygonalSelection) {
-                var poly = polygonalSelection;
-                var polyPoints = poly.getPoints().stream().findFirst().get();
+                var polyPoints = polygonalSelection.getPoints().stream().findFirst().orElseThrow();
                 switch (params) {
                     case "region_min_point_x", "region_max_point_x":
                         return String.valueOf(polyPoints.getBlockX());
                     case "region_min_point_y":
-                        return String.valueOf(poly.getMinimumY());
+                        return String.valueOf(polygonalSelection.getMinimumY());
                     case "region_min_point_z", "region_max_point_z":
                         return String.valueOf(polyPoints.getBlockZ());
                     case "region_max_point_y":
-                        return String.valueOf(poly.getMaximumY());
+                        return String.valueOf(polygonalSelection.getMaximumY());
                 }
             } else if (selection instanceof ICuboidSelection cuboidSelection) {
                 switch (params) {
@@ -229,10 +226,6 @@ public class WorldGuardExpansion extends PlaceholderExpansion {
                         return String.valueOf(cuboidSelection.getMaximumPoint().getBlockZ());
                 }
             }
-
-
-
-
         }
 
         return null;
